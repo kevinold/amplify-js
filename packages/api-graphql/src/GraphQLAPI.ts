@@ -10,15 +10,9 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
-import {
-	DocumentNode,
-	OperationDefinitionNode,
-	print,
-	parse,
-	GraphQLError,
-	OperationTypeNode,
-} from 'graphql';
-import Observable from 'zen-observable-ts';
+import { RestClient } from '@aws-amplify/api-rest';
+import Auth from '@aws-amplify/auth';
+import Cache from '@aws-amplify/cache';
 import {
 	Amplify,
 	ConsoleLogger as Logger,
@@ -27,15 +21,21 @@ import {
 	INTERNAL_AWS_APPSYNC_REALTIME_PUBSUB_PROVIDER,
 } from '@aws-amplify/core';
 import { PubSub } from '@aws-amplify/pubsub';
-import Auth from '@aws-amplify/auth';
-import Cache from '@aws-amplify/cache';
+import {
+	DocumentNode,
+	GraphQLError,
+	OperationDefinitionNode,
+	OperationTypeNode,
+	parse,
+	print,
+} from 'graphql';
+import Observable from 'zen-observable-ts';
 import {
 	GraphQLAuthError,
+	GraphQLOperation,
 	GraphQLOptions,
 	GraphQLResult,
-	GraphQLOperation,
 } from './types';
-import { RestClient } from '@aws-amplify/api-rest';
 const USER_AGENT_HEADER = 'x-amz-user-agent';
 
 const logger = new Logger('GraphQLAPI');
@@ -164,7 +164,12 @@ export class GraphQLAPIClass {
 					} else {
 						const currentUser = await Auth.currentAuthenticatedUser();
 						if (currentUser) {
-							token = currentUser.token;
+							if (currentUser.hasOwnProperty('token')) {
+								token = currentUser.token;
+							}
+							if (currentUser.hasOwnProperty('signInUserSession')) {
+								token = currentUser.signInUserSession.idToken.jwtToken;
+							}
 						}
 					}
 					if (!token) {

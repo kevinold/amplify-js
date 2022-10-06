@@ -10,46 +10,46 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
-import Observable, { ZenObservable } from 'zen-observable-ts';
+import Auth, { GRAPHQL_AUTH_MODE } from '@aws-amplify/auth';
+import Cache from '@aws-amplify/cache';
+import {
+	Constants,
+	Credentials,
+	Hub,
+	ICredentials,
+	jitteredExponentialRetry,
+	Logger,
+	NonRetryableError,
+	Signer,
+	USER_AGENT_HEADER,
+} from '@aws-amplify/core';
+import { Buffer } from 'buffer';
 import { GraphQLError } from 'graphql';
 import * as url from 'url';
 import { v4 as uuid } from 'uuid';
-import { Buffer } from 'buffer';
+import Observable, { ZenObservable } from 'zen-observable-ts';
 import { ProviderOptions } from '../../types/Provider';
-import {
-	Logger,
-	Credentials,
-	Signer,
-	Hub,
-	Constants,
-	USER_AGENT_HEADER,
-	jitteredExponentialRetry,
-	NonRetryableError,
-	ICredentials,
-} from '@aws-amplify/core';
-import Cache from '@aws-amplify/cache';
-import Auth, { GRAPHQL_AUTH_MODE } from '@aws-amplify/auth';
-import { AbstractPubSubProvider } from '../PubSubProvider';
 import { CONTROL_MSG } from '../../types/PubSub';
+import { AbstractPubSubProvider } from '../PubSubProvider';
 
+import {
+	ConnectionStateMonitor,
+	CONNECTION_CHANGE,
+} from '../../utils/ConnectionStateMonitor';
 import {
 	AMPLIFY_SYMBOL,
 	AWS_APPSYNC_REALTIME_HEADERS,
 	CONNECTION_INIT_TIMEOUT,
-	DEFAULT_KEEP_ALIVE_TIMEOUT,
+	CONNECTION_STATE_CHANGE,
 	DEFAULT_KEEP_ALIVE_ALERT_TIMEOUT,
+	DEFAULT_KEEP_ALIVE_TIMEOUT,
 	MAX_DELAY_MS,
 	MESSAGE_TYPES,
 	NON_RETRYABLE_CODES,
 	SOCKET_STATUS,
 	START_ACK_TIMEOUT,
 	SUBSCRIPTION_STATUS,
-	CONNECTION_STATE_CHANGE,
 } from '../constants';
-import {
-	ConnectionStateMonitor,
-	CONNECTION_CHANGE,
-} from '../../utils/ConnectionStateMonitor';
 
 const logger = new Logger('AWSAppSyncRealTimeProvider');
 
@@ -843,7 +843,12 @@ export class AWSAppSyncRealTimeProvider extends AbstractPubSubProvider {
 		} else {
 			const currentUser = await Auth.currentAuthenticatedUser();
 			if (currentUser) {
-				token = currentUser.token;
+				if (currentUser.hasOwnProperty('token')) {
+					token = currentUser.token;
+				}
+				if (currentUser.hasOwnProperty('signInUserSession')) {
+					token = currentUser.signInUserSession.idToken.jwtToken;
+				}
 			}
 		}
 		if (!token) {

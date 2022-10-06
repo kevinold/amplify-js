@@ -4,28 +4,28 @@ import Cache from '@aws-amplify/cache';
 import { ConsoleLogger as Logger, Hub, HubCapsule } from '@aws-amplify/core';
 import { CONTROL_MSG as PUBSUB_CONTROL_MSG } from '@aws-amplify/pubsub';
 import Observable, { ZenObservable } from 'zen-observable-ts';
+import { ModelPredicateCreator } from '../../predicates';
 import {
-	InternalSchema,
-	PersistentModel,
-	SchemaModel,
-	SchemaNamespace,
-	PredicatesGroup,
-	ModelPredicate,
+	AmplifyContext,
 	AuthModeStrategy,
 	ErrorHandler,
+	InternalSchema,
+	ModelPredicate,
+	PersistentModel,
+	PredicatesGroup,
 	ProcessName,
-	AmplifyContext,
+	SchemaModel,
+	SchemaNamespace,
 } from '../../types';
+import { USER_AGENT_SUFFIX_DATASTORE, validatePredicate } from '../../util';
 import {
 	buildSubscriptionGraphQLOperation,
 	getAuthorizationRules,
 	getModelAuthModes,
+	getTokenForCustomAuth,
 	getUserGroupsFromToken,
 	TransformerMutationType,
-	getTokenForCustomAuth,
 } from '../utils';
-import { ModelPredicateCreator } from '../../predicates';
-import { validatePredicate, USER_AGENT_SUFFIX_DATASTORE } from '../../util';
 import { getSubscriptionErrorType } from './errorMaps';
 
 const logger = new Logger('DataStore');
@@ -292,7 +292,12 @@ class SubscriptionProcessor {
 						const currentUser =
 							await this.amplifyContext.Auth.currentAuthenticatedUser();
 						if (currentUser) {
-							token = currentUser.token;
+							if (currentUser.hasOwnProperty('token')) {
+								token = currentUser.token;
+							}
+							if (currentUser.hasOwnProperty('signInUserSession')) {
+								token = currentUser.signInUserSession.idToken.jwtToken;
+							}
 						}
 					}
 
