@@ -164,7 +164,12 @@ export class GraphQLAPIClass {
 					} else {
 						const currentUser = await Auth.currentAuthenticatedUser();
 						if (currentUser) {
-							token = currentUser.token;
+							if (currentUser.hasOwnProperty('token')) {
+								token = currentUser.token;
+							}
+							if (currentUser.hasOwnProperty('signInUserSession')) {
+								token = currentUser.signInUserSession.idToken.jwtToken;
+							}
 						}
 					}
 					if (!token) {
