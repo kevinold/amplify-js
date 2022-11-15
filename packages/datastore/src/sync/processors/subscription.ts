@@ -299,7 +299,12 @@ class SubscriptionProcessor {
 						const currentUser =
 							await this.amplifyContext.Auth.currentAuthenticatedUser();
 						if (currentUser) {
-							token = currentUser.token;
+							if (currentUser.hasOwnProperty('token')) {
+								token = currentUser.token;
+							}
+							if (currentUser.hasOwnProperty('signInUserSession')) {
+								token = currentUser.signInUserSession.idToken.jwtToken;
+							}
 						}
 					}
 
